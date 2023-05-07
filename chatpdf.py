@@ -1,3 +1,4 @@
+# chat with PDF files using langchain
 import os
 import pickle
 from PyPDF2 import PdfReader
@@ -11,6 +12,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import io
 import asyncio
+
 
 load_dotenv()
 api_key = os.getenv('OPENAI_API_KEY')  
@@ -38,7 +40,21 @@ async def getDocEmbeds(file, filename):
         
     return vectors
 
-async def conversational_chat(qa, query, history):
-    result = qa({"question": query, "chat_history": history})
-    history.append((query, result["answer"]))
+async def conversational_chat(qa, query, st):
+    # Truncate the history to fit within the model's maximum context length
+    truncated_history = []
+    remaining_tokens = 4097 - len(query) - 1  # Subtract 1 to account for the delimiter token
+
+    for message in reversed(st):
+        user_message, model_message = message
+        message_tokens = len(user_message) + len(model_message) + 2  # Add 2 to account for the delimiter tokens
+
+        if remaining_tokens - message_tokens >= 0:
+            truncated_history.insert(0, message)
+            remaining_tokens -= message_tokens
+        else:
+            break
+
+    result = qa({"question": query, "chat_history": truncated_history})
+    st.append((query, result["answer"]))
     return result["answer"]
