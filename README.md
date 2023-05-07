@@ -3,7 +3,9 @@ Chat with pdf, word, images, audio, video files and so on ... you could chat wit
 
 
 ## Chat with PDF
-
+```bash
+streamlit run app.py --server.port 8503
+```
 
 ## Chat with Word
 
