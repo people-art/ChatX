@@ -1,11 +1,15 @@
 # ChatX
 Chat with pdf, word, images, audio, video files and so on ... you could chat with anything want. 
 
-
-## Chat with PDF
+# How to usage
 ```bash
 streamlit run app.py --server.port 8503
 ```
+
+
+
+## Chat with PDF
+
 
 ## Chat with Word
 

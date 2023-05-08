@@ -12,10 +12,15 @@ from pathlib import Path
 from dotenv import load_dotenv
 import io
 import asyncio
+import boto3
+
 
 
 load_dotenv()
 api_key = os.getenv('OPENAI_API_KEY')  
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
 
 async def storeDocEmbeds(file, filename):
     reader = PdfReader(file)
@@ -29,16 +34,40 @@ async def storeDocEmbeds(file, filename):
     
     with open(filename + ".pkl", "wb") as f:
         pickle.dump(vectors, f)
+    
+    upload_to_s3('chatx',filename+'.pkl')
+
+def download_from_s3(bucket_name, object_name, file_path=None):
+    s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+    
+    if file_path is None:
+        file_path = Path(object_name).name
+
+    try:
+        s3.download_file(bucket_name, object_name, file_path)
+        print(f"File {object_name} downloaded from {bucket_name} to {file_path}")
+        return file_path
+    except Exception as e:
+        print(f"Error downloading file from S3: {e}")
+        return None
+
 
 async def getDocEmbeds(file, filename):
-    if not os.path.isfile(filename + ".pkl"):
-        await storeDocEmbeds(file, filename)
+    local_path = filename + ".pkl"
+    s3_object_name = filename + ".pkl"
     
-    with open(filename + ".pkl", "rb") as f:
+    if not os.path.isfile(local_path):
+        downloaded_path = download_from_s3('chatx', s3_object_name)
+        
+        if downloaded_path is None:
+            await storeDocEmbeds(file, filename)
+
+    with open(local_path, "rb") as f:
         global vectores
         vectors = pickle.load(f)
         
     return vectors
+
 
 async def conversational_chat(qa, query, st):
     # Truncate the history to fit within the model's maximum context length
@@ -58,3 +87,15 @@ async def conversational_chat(qa, query, st):
     result = qa({"question": query, "chat_history": truncated_history})
     st.append((query, result["answer"]))
     return result["answer"]
+
+def upload_to_s3(bucket_name, file_path, object_name=None):
+    s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+    
+    if object_name is None:
+        object_name = Path(file_path).name
+
+    try:
+        s3.upload_file(file_path, bucket_name, object_name)
+        print(f"File {file_path} uploaded to {bucket_name}/{object_name}")
+    except Exception as e:
+        print(f"Error uploading file to S3: {e}")
