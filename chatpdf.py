@@ -35,7 +35,11 @@ async def storeDocEmbeds(file, filename):
     with open(filename + ".pkl", "wb") as f:
         pickle.dump(vectors, f)
     
-    upload_to_s3('chatx',filename+'.pkl')
+    # Upload the file to S3
+    bucket_name = "chatx"
+    object_name = filename + ".pkl"
+    file_path = object_name
+    upload_to_s3(bucket_name, file_path, object_name)
 
 def download_from_s3(bucket_name, object_name, file_path=None):
     s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
@@ -91,11 +95,8 @@ async def conversational_chat(qa, query, st):
 def upload_to_s3(bucket_name, file_path, object_name=None):
     s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
     
-    if object_name is None:
-        object_name = Path(file_path).name
-
     try:
         s3.upload_file(file_path, bucket_name, object_name)
-        print(f"File {file_path} uploaded to {bucket_name}/{object_name}")
+        print(f"{object_name} uploaded to {bucket_name} bucket successfully.")
     except Exception as e:
-        print(f"Error uploading file to S3: {e}")
+        print(f"Error uploading {object_name} to {bucket_name} bucket: {e}")

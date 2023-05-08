@@ -84,7 +84,7 @@ async def main():
     # Add sidebar for PDF upload and API key input
     st.sidebar.title("Settings")
     openai_api_key = st.sidebar.text_input("Enter OpenAI API key:")
-    uploaded_file = st.sidebar.file_uploader("Choose a file", type="pdf")
+    uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
 
     if openai_api_key:
         api_key = openai_api_key
