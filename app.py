@@ -23,7 +23,7 @@ def app_main():
         asyncio.run(chatpdf_main())
     elif st.session_state['mode'] == "chatgithub":
         # 调用 chatgithub_main 函数（需要在 chatgithub.py 中创建）
-        chatgithub_main()
+        asyncio.run(chatgithub_main())
     elif st.session_state['mode'] == "chatdb":
         # 调用 chatdb_main 函数（需要在 chatdb.py 中创建）
         pass
