@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 import io
 import asyncio
 import boto3
+import streamlit as st
+
+from streamlit_chat import message
+
 
 
 
@@ -100,3 +104,117 @@ def upload_to_s3(bucket_name, file_path, object_name=None):
         print(f"{object_name} uploaded to {bucket_name} bucket successfully.")
     except Exception as e:
         print(f"Error uploading {object_name} to {bucket_name} bucket: {e}")
+
+
+# add Starter
+
+def add_logo_and_title():
+
+    logo_image = "./static/logo.png"
+    st.image(logo_image,width=50)
+
+    st.markdown(
+            ''' 
+            ## :black **ChatX** -- *Chat with anything you want* 
+            This is `chat` with *pdf* demo. <br>
+            You could `chat` with *video*, *images*, *database* and so on...<br>
+            **ChatX** could `chat` with any *digital objects* and *agent*.
+            ''',unsafe_allow_html=True)
+    #st.markdown(" > Powered by -  🦜 LangChain + OpenAI + Streamlit + Whisper")
+
+
+
+# Add this function to create a footer
+def add_footer():
+    footer = """
+    <style>
+    .footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background-color: white;
+        text-align: center;
+    }
+    </style>
+    <div class="footer">
+        <p>© 2023 艾凡达实验室</p>
+    </div>
+    """
+    st.markdown(footer, unsafe_allow_html=True)
+
+
+
+
+async def chatpdf_main():
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo")
+    chain = load_qa_chain(llm, chain_type="stuff")
+
+    add_logo_and_title()
+
+    if 'history' not in st.session_state:
+        st.session_state['history'] = []
+
+    
+
+    if 'ready' not in st.session_state:
+        st.session_state['ready'] = False
+
+    # Add sidebar for PDF upload and API key input
+    st.sidebar.title("Settings")
+    openai_api_key = st.sidebar.text_input("Enter OpenAI API key:")
+    uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
+
+    if openai_api_key:
+        api_key = openai_api_key
+
+    if uploaded_file is not None:
+
+        with st.spinner("Processing..."):
+            uploaded_file.seek(0)
+            file = uploaded_file.read()
+            vectors = await getDocEmbeds(io.BytesIO(file), uploaded_file.name)
+            qa = ConversationalRetrievalChain.from_llm(llm, retriever=vectors.as_retriever(), return_source_documents=True)
+
+
+
+
+        st.session_state['ready'] = True
+
+    st.divider()
+
+    if st.session_state['ready']:
+
+        if 'generated' not in st.session_state:
+            st.session_state['generated'] = ["Welcome! You can now ask any questions regarding " + uploaded_file.name]
+
+        if 'past' not in st.session_state:
+            st.session_state['past'] = ["Hey!"]
+
+        # container for chat history
+        response_container = st.container()
+
+        # container for text box
+        container = st.container()
+
+        with container:
+            with st.form(key='my_form', clear_on_submit=True):
+                user_input = st.text_input("Query:", placeholder="e.g: Summarize the paper in a few sentences", key='input')
+                submit_button = st.form_submit_button(label='Send')
+
+            if submit_button and user_input:
+                output = await conversational_chat(qa, user_input, st.session_state['history'])
+
+                st.session_state['past'].append(user_input)
+                st.session_state['generated'].append(output)
+
+        if st.session_state['generated']:
+            with response_container:
+                for i in range(len(st.session_state['generated'])):
+                    message(st.session_state["past"][i], is_user=True, key=str(i) + '_user', avatar_style="thumbs")
+                    message(st.session_state["generated"][i], key=str(i), avatar_style="fun-emoji")
+
+    add_footer()
+
+
+if __name__ == "__main__":
+    asyncio.run(chatpdf_main())

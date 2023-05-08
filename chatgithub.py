@@ -1,8 +1,8 @@
 import os
 import requests
 import fnmatch
-import argparse
 import base64
+import streamlit as st
 
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
@@ -12,7 +12,7 @@ from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains.question_answering import load_qa_chain
 
-GITHUB_TOKEN = "[INSERT YOUR GITHUB ACCESS TOKEN HERE]"
+GITHUB_TOKEN = "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"
 
 def parse_github_url(url):
     parts = url.strip("/").split("/")
@@ -53,38 +53,39 @@ def get_source_chunks(files):
     splitter = CharacterTextSplitter(separator=" ", chunk_size=1024, chunk_overlap=0)
     for source in fetch_md_contents(files):
         for chunk in splitter.split_text(source.page_content):
-            source_chunks.append(Document(page_content=chunk, metadate=source.metadata))
+            source_chunks.append(Document(page_content=chunk, metadata=source.metadata))
     return source_chunks
 
-def main():
-    parser = argparse.ArgumentParser(description="Fetch all *.md files from a GitHub repository.")
-    parser.add_argument("url", help="GitHub repository URL")
-    args = parser.parse_args()
+def chatgithub_main(github_url=None):
+    st.title("Chat with GitHub Repo")
 
-    GITHUB_OWNER, GITHUB_REPO = parse_github_url(args.url)
-    
-    all_files = get_files_from_github_repo(GITHUB_OWNER, GITHUB_REPO, GITHUB_TOKEN)
+    url = st.text_input("Enter the GitHub repository URL:")
 
-    CHROMA_DB_PATH = f'./chroma/{os.path.basename(GITHUB_REPO)}'
+    if url:
+        GITHUB_OWNER, GITHUB_REPO = parse_github_url(url)
+        all_files = get_files_from_github_repo(GITHUB_OWNER, GITHUB_REPO, GITHUB_TOKEN)
 
-    chroma_db = None
+        CHROMA_DB_PATH = f'./chroma/{os.path.basename(GITHUB_REPO)}'
 
-    if not os.path.exists(CHROMA_DB_PATH):
-        print(f'Creating Chroma DB at {CHROMA_DB_PATH}...')
-        source_chunks = get_source_chunks(all_files)
-        chroma_db = Chroma.from_documents(source_chunks, OpenAIEmbeddings(), persist_directory=CHROMA_DB_PATH)
-        chroma_db.persist()
-    else:
-        print(f'Loading Chroma DB from {CHROMA_DB_PATH} ... ')
-        chroma_db = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=OpenAIEmbeddings())
+        chroma_db = None
 
-    qa_chain = load_qa_chain(OpenAI(temperature=1), chain_type="stuff")
-    qa = RetrievalQA(combine_documents_chain=qa_chain, retriever=chroma_db.as_retriever())
+        if not os.path.exists(CHROMA_DB_PATH):
+            print(f'Creating Chroma DB at {CHROMA_DB_PATH}...')
+            source_chunks = get_source_chunks(all_files)
+            chroma_db = Chroma.from_documents(source_chunks, OpenAIEmbeddings(), persist_directory=CHROMA_DB_PATH)
+            chroma_db.persist()
+        else:
+            print(f'Loading Chroma DB from {CHROMA_DB_PATH} ... ')
+            chroma_db = Chroma(persist_directory=CHROMA_DB_PATH, embedding_function=OpenAIEmbeddings())
 
-    while True:
-        print('\n\n\033[31m' + 'Ask a question' + '\033[m')
-        user_input = input()
-        print('\033[31m' + qa.run(user_input) + '\033[m')
+        qa_chain = load_qa_chain(OpenAI(temperature=1), chain_type="stuff")
+        qa = RetrievalQA(combine_documents_chain=qa_chain, retriever=chroma_db.as_retriever())
+
+        question = st.text_input("Ask a question:")
+
+        if question:
+            answer = qa.run(question)
+            st.write(answer)
 
 if __name__ == "__main__":
-    main()
+    chatgithub_main()
