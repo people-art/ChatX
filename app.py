@@ -40,10 +40,11 @@ def add_logo_and_title():
 
     st.markdown(
             ''' 
-            ## :black **ChatX** 
-            Chat with pdf, word, images, audio, video files and so on ... \
-            Chat with anything you want...
-            ''')
+            ## :black **ChatX** -- *Chat with anything you want* 
+            This is `chat` with *pdf* demo. <br>
+            You could `chat` with *video*, *images*, *database* and so on...<br>
+            **ChatX** could `chat` with any *digital objects* and *agent*.
+            ''',unsafe_allow_html=True)
     #st.markdown(" > Powered by -  🦜 LangChain + OpenAI + Streamlit + Whisper")
 
 
