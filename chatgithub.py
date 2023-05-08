@@ -14,6 +14,7 @@ from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains.question_answering import load_qa_chain
 
+GITHUB_API_URL = "https://api.github.com"
 GITHUB_TOKEN = "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"
 
 def parse_github_url(url):
@@ -23,23 +24,23 @@ def parse_github_url(url):
     return owner, repo
 
 def get_files_from_github_repo(owner, repo):
-    url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/main?recursive=1"
+    url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/contents"
     headers = {
-        #"Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json"
+        "Authorization": f"token {GITHUB_TOKEN}"
     }
     response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        content = response.json()
-        return content["tree"]
-    else:
-        st.error(f"Error fetching repo contents: {response.status_code}")
-        return []
 
-def fetch_md_contents(files):
+    if response.status_code != 200:
+        raise ValueError(f"Error fetching repo contents: {response.status_code}")
+
+    return response.json()
+
+def fetch_md_contents(files, owner, repo):
     md_contents = []
+    found_md = False
     for file in files:
         if file["type"] == "blob" and fnmatch.fnmatch(file["path"], "*.md"):
+            found_md = True
             response = requests.get(file["url"])
             if response.status_code == 200:
                 content = response.json()["content"]
@@ -48,13 +49,29 @@ def fetch_md_contents(files):
                 md_contents.append(Document(page_content=decoded_content, metadata={"source": file['path']}))
             else:
                 print(f"Error downloading file {file['path']}: {response.status_code}")
+
+    if not found_md:
+        print("No markdown files found, fetching README.md as default")
+        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/contents/README.md"
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            content = response.json()["content"]
+            decoded_content = base64.b64decode(content).decode('utf-8')
+            print("Fetching Content from README.md")
+            md_contents.append(Document(page_content=decoded_content, metadata={"source": "README.md"}))
+        else:
+            print(f"Error downloading README.md: {response.status_code}")
+
     return md_contents
 
-def get_source_chunks(files):
+def get_source_chunks(files, owner, repo):
     print("In get_source_chunks ...")
     source_chunks = []
     splitter = CharacterTextSplitter(separator=" ", chunk_size=1024, chunk_overlap=0)
-    md_contents = fetch_md_contents(files)
+    md_contents = fetch_md_contents(files, owner, repo)
     if not md_contents:
         print("No markdown contents found in the repository.")
         return source_chunks
@@ -62,6 +79,7 @@ def get_source_chunks(files):
         for chunk in splitter.split_text(source.page_content):
             source_chunks.append(Document(page_content=chunk, metadata=source.metadata))
     return source_chunks
+
 
 
 def message(text, is_user=True, key=None, avatar_style="thumbs"):
@@ -87,11 +105,12 @@ def message(text, is_user=True, key=None, avatar_style="thumbs"):
             unsafe_allow_html=True,
         )
 
+
 async def conversational_chat(qa, query, history):
     truncated_history = []
     remaining_tokens = 4097 - len(query) - 1  # Subtract 1 to account for the delimiter token
 
-    for message in reversed(st):
+    for message in reversed(history):
         user_message, model_message = message
         message_tokens = len(user_message) + len(model_message) + 2  # Add 2 to account for the delimiter tokens
 
@@ -101,10 +120,10 @@ async def conversational_chat(qa, query, history):
         else:
             break
 
-    result = qa({"question": query, "chat_history": truncated_history})
-    st.append((query, result["answer"]))
-    return result["answer"]
+    result = qa({"query": query, "chat_history": truncated_history})  # 修改这一行
 
+    history.append((query, result["answer"]))
+    return result["answer"]
 
 
 async def chatgithub_main(github_url=None):
@@ -135,7 +154,9 @@ async def chatgithub_main(github_url=None):
 
         if not os.path.exists(CHROMA_DB_PATH):
             print(f'Creating Chroma DB at {CHROMA_DB_PATH}...')
-            source_chunks = get_source_chunks(all_files)
+            
+            source_chunks = get_source_chunks(all_files, GITHUB_OWNER, GITHUB_REPO)
+
             if not source_chunks:
                 st.error("No documents found in the repository. Please try another repository.")
                 return
@@ -153,36 +174,36 @@ async def chatgithub_main(github_url=None):
 
         if st.session_state['ready']:
 
-            if 'generated' not in st.session_state:
-                st.session_state['generated'] = ["Welcome! You can now ask any questions regarding " + GITHUB_REPO]
+                if 'model_messages' not in st.session_state:
+                    st.session_state['model_messages'] = ["Welcome! You can now ask any questions regarding " + GITHUB_REPO]
 
-            if 'past' not in st.session_state:
-                st.session_state['past'] = ["Hey!"]
+                if 'user_messages' not in st.session_state:
+                    st.session_state['user_messages'] = ["Hey!"]
 
-            # container for chat history
-            response_container = st.container()
+                # container for chat history
+                response_container = st.container()
 
-            # container for text box
-            container = st.container()
+                # container for text box
+                container = st.container()
 
-            with container:
-                with st.form(key='my_form', clear_on_submit=True):
-                    user_input = st.text_input("Query:", placeholder="e.g: Summarize the paper in a few sentences", key='input')
-                    submit_button = st.form_submit_button(label='Send')
+                with container:
+                    with st.form(key='my_form', clear_on_submit=True):
+                        user_input = st.text_input("Query:", placeholder="e.g: Summarize the paper in a few sentences", key='input')
+                        submit_button = st.form_submit_button(label='Send')
 
-                if submit_button and user_input:
-                    output = await conversational_chat(qa, user_input, st.session_state['history'])
-                    output = str(output)
+                    if submit_button and user_input:
+                        output = await conversational_chat(qa, user_input, st.session_state['history'])
+
+                        st.session_state['user_messages'].append(user_input)
+                        st.session_state['model_messages'].append(output)
+
+                if st.session_state['model_messages']:
+                    with response_container:
+                        for i, (user_message, model_message) in enumerate(zip(st.session_state['user_messages'], st.session_state['model_messages'])):
+                            message(user_message, is_user=True, key=str(i) + '_user', avatar_style="thumbs")
+                            message(model_message, key=str(i), avatar_style="fun-emoji")
 
 
-                    st.session_state['past'].append(user_input)
-                    st.session_state['generated'].append(output)
-
-            if st.session_state['generated']:
-                with response_container:
-                    for i in range(len(st.session_state['generated'])):
-                        message(st.session_state["past"][i], is_user=True, key=str(i) + '_user', avatar_style="thumbs")
-                        message(st.session_state["generated"][i], key=str(i), avatar_style="fun-emoji")
 
 if __name__ == "__main__":
     asyncio.run(chatgithub_main())
