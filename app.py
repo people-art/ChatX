@@ -1,6 +1,7 @@
 import streamlit as st
 from chatpdf import chatpdf_main
 from chatgithub import chatgithub_main
+from chatdocs import chatdocs_main
 import asyncio
 
 # 创建侧边栏菜单
@@ -21,12 +22,12 @@ def app_main():
 
     if st.session_state['mode'] == "chatpdf":
         asyncio.run(chatpdf_main())
-    elif st.session_state['mode'] == "chatgithub":
+    #elif st.session_state['mode'] == "chatgithub":
         # 调用 chatgithub_main 函数（需要在 chatgithub.py 中创建）
-        asyncio.run(chatgithub_main())
-    elif st.session_state['mode'] == "chatdb":
+        # asyncio.run(chatgithub_main())
+    elif st.session_state['mode'] == "chatdocs":
         # 调用 chatdb_main 函数（需要在 chatdb.py 中创建）
-        pass
+        asyncio.run(chatdocs_main())
     elif st.session_state['mode'] == "chatvideo":
         # 调用 chatvideo_main 函数（需要在 chatvideo.py 中创建）
         pass
