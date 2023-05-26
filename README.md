@@ -1,19 +1,15 @@
-# ChatX
+# ChatX -- Chat Anything You Want
 
 <p align="center">
-<img src="../logo.png" alt="ChatX-logo" width="30%">
+<img src=".assets/logo.png" alt="ChatX" width="30%">
 <p align="center">
 
-<a href="https://discord.gg/HUpRgp2HG8">
-  <img src="https://img.shields.io/badge/discord-join%20chat-blue.svg" alt="Join our Discord" height="40">
-</a>
-
-ChatX is your Ai-Avatar in the cloud, designed to easily store and retrieve unstructured information. It's like Obsidian but powered by generative AI.
+ChatX designed to easily store and retrieve unstructured information. You can `chat` with any digital objects you want. It's like Obsidian but powered by generative AI.
 
 ## Features
 
 - **Store Anything**: ChatX can handle almost any type of data you throw at it. Text, images, code snippets, you name it.
-- **Generative AI**: ChatX uses advanced AI to help you generate and retrieve information.
+- **Generative AI**: ChatX uses LLMs to help you generate and retrieve information.
 - **Fast and Efficient**: Designed with speed and efficiency in mind. ChatX makes sure you can access your data as quickly as possible.
 - **Secure**: Your data is stored securely in the cloud and is always under your control.
 - **Compatible Files**: 
@@ -23,15 +19,6 @@ ChatX is your Ai-Avatar in the cloud, designed to easily store and retrieve unst
   - **Audio**
   - **Video**
 - **Open Source**: ChatX is open source and free to use.
-## Demo
-
-
-### Demo with GPT3.5
-https://github.com/StanGirard/ChatX/assets/19614572/80721777-2313-468f-b75e-09379f694653
-
-
-### Demo with Claude 100k context
-https://github.com/StanGirard/ChatX/assets/5101573/9dba918c-9032-4c8d-9eea-94336d2c8bd4
 
 ## Getting Started
 
@@ -43,7 +30,7 @@ Make sure you have the following installed before continuing:
 
 - Python 3.10 or higher
 - Pip
-- Virtualenv
+- Conda
 
 You'll also need a [Supabase](https://supabase.com/) account for:
 
@@ -56,19 +43,19 @@ You'll also need a [Supabase](https://supabase.com/) account for:
 - Clone the repository
 
 ```bash
-git clone git@github.com:StanGirard/ChatX.git && cd ChatX
+git clone https://github.com/people-art/ChatX.git && cd ChatX
 ```
 
 - Create a virtual environment
 
 ```bash
-virtualenv venv
+conda create -n chatx python=3.9
 ```
 
 - Activate the virtual environment
 
 ```bash
-source venv/bin/activate
+conda activate chatx
 ```
 
 - Install the dependencies
@@ -165,10 +152,3 @@ streamlit run main.py
 * [FastAPI](https://fastapi.tiangolo.com/) - The API framework used.
 * [Supabase](https://supabase.io/) - The open source Firebase alternative.
 
-## Contributing
-
-Open a pull request and we'll review it as soon as possible.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=StanGirard/ChatX&type=Date)](https://star-history.com/#StanGirard/ChatX&Date)

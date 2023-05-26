@@ -12,13 +12,6 @@ from supabase import Client, create_client
 from explorer import view_document
 from stats import get_usage_today
 
-
-logo = "./assets/logo.png" # 将这个路径换成你的logo图片的路径
-
-# 添加logo
-st.image(logo, use_column_width=True)
-
-
 supabase_url = st.secrets.supabase_url
 supabase_key = st.secrets.supabase_service_key
 openai_api_key = st.secrets.openai_api_key
@@ -41,35 +34,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-language_options = ["English", "Chinese"]
-default_language = "English"
-st.session_state['language'] = st.selectbox("Select Language", language_options, index=language_options.index(default_language))
 
-english_text = {
-    "title": "😊 ChatX - Retrieve information and Knowledge by AI 😊",
-    "add_knowledge": "Add Knowledge",
-    "chat": "Chat with your Ai-Avatar",
-    "forget": "Forget",
-    "explore": "Explore",
-    
-    # Add more keys as needed
-}
-
-chinese_text = {
-    "title": "😊 ChatX - 改变获取信息和知识的方式 😊",
-    "add_knowledge": "添加知识",
-    "chat": "聊天",
-    "forget": "删除",
-    "explore": "探索",
-    # Add more keys as needed
-}
-
-if st.session_state['language'] == "English":
-    text = english_text
-else:
-    text = chinese_text
-
-st.title(text["title"])
+st.title("😊 ChatX - Chat Anything You Want 😊")
 
 if self_hosted == "false":
     st.markdown('**📢 Note: In the public demo, access to functionality is restricted. You can only use the GPT-3.5-turbo model and upload files up to 1Mb. To use more models and upload larger files, consider self-hosting ChatX.**')
@@ -86,6 +52,9 @@ if self_hosted == "false":
     else:
         st.markdown(f"<span style='color:blue'>Usage today: {usage} tokens out of {st.secrets.usage_limit}</span>", unsafe_allow_html=True)
     st.write("---")
+    
+
+
 
 # Initialize session state variables
 if 'model' not in st.session_state:
@@ -101,11 +70,11 @@ if 'max_tokens' not in st.session_state:
 
 # Create a radio button for user to choose between adding knowledge or asking a question
 user_choice = st.radio(
-    "Choose an action", (text['add_knowledge'], text['chat'], text['forget'], text["explore"]))
+    "Choose an action", ('Add Knowledge', 'Chat with your Ai-Avatar', 'Forget', "Explore"))
 
 st.markdown("---\n\n")
 
-if user_choice == text['add_knowledge']:
+if user_choice == 'Add Knowledge':
     # Display chunk size and overlap selection only when adding knowledge
     st.sidebar.title("Configuration")
     st.sidebar.markdown(
@@ -114,15 +83,15 @@ if user_choice == text['add_knowledge']:
         "Select Chunk Size", 100, 1000, st.session_state['chunk_size'], 50)
     st.session_state['chunk_overlap'] = st.sidebar.slider(
         "Select Chunk Overlap", 0, 100, st.session_state['chunk_overlap'], 10)
-
+    
     # Create two columns for the file uploader and URL uploader
     col1, col2 = st.columns(2)
-
+    
     with col1:
         file_uploader(supabase, vector_store)
     with col2:
         url_uploader(supabase, vector_store)
-elif user_choice == text['chat']:
+elif user_choice == 'Chat with your Ai-Avatar':
     # Display model and temperature selection only when asking questions
     st.sidebar.title("Configuration")
     st.sidebar.markdown(
@@ -141,44 +110,14 @@ elif user_choice == text['chat']:
             "Select Max Tokens", 256, 2048, st.session_state['max_tokens'], 2048)
     else:
         st.session_state['max_tokens'] = 256
-
+    
     chat_with_doc(st.session_state['model'], vector_store, stats_db=supabase)
-elif user_choice == text['forget']:
+elif user_choice == 'Forget':
     st.sidebar.title("Configuration")
 
     AiAvatar(supabase)
-elif user_choice == text['explore']:
+elif user_choice == 'Explore':
     st.sidebar.title("Configuration")
     view_document(supabase)
 
 st.markdown("---\n\n")
-
-
-
-
-# 定义中英文footer文本
-footer_text = {
-    'en': "Copyright © 2023 Ai-Avatar Labs. All rights reserved.",
-    'cn': "版权所有 © 2023 艾凡达实验室。保留所有权利。"
-}
-
-# 定义footer的HTML模板
-footer_template = """<style>
-.footer {{
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  background-color: white;
-  color: grey;
-  text-align: center;
-}}
-</style>
-<div class="footer">
-<p>{}</p>
-</div>
-"""
-
-# 根据用户选择的语言来设置footer
-footer = footer_template.format(footer_text[st.session_state['language']])
-st.markdown(footer, unsafe_allow_html=True)
