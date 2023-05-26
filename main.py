@@ -18,6 +18,12 @@ logo = "./assets/logo.png" # 将这个路径换成你的logo图片的路径
 # 添加logo
 st.image(logo, use_column_width=True)
 
+st.set_page_config(
+    page_title="ChatX",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_icon="./assets/favicon.ico"  # Replace this with the path to your favicon
+)
 
 supabase_url = st.secrets.supabase_url
 supabase_key = st.secrets.supabase_service_key
