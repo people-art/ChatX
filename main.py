@@ -12,11 +12,14 @@ from supabase import Client, create_client
 from explorer import view_document
 from stats import get_usage_today
 
+# Set the theme
+st.set_page_config(
+    page_title="ChatX",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_icon="./assets/favicon.ico" 
+)
 
-logo = "./assets/logo.png" # 将这个路径换成你的logo图片的路径
-
-# 添加logo
-st.image(logo, use_column_width=True)
 
 supabase_url = st.secrets.supabase_url
 supabase_key = st.secrets.supabase_service_key
@@ -33,43 +36,46 @@ if anthropic_api_key:
     models += ["claude-v1", "claude-v1.3",
                "claude-instant-v1-100k", "claude-instant-v1.1-100k"]
 
-# Set the theme
-st.set_page_config(
-    page_title="ChatX",
-    layout="wide",
-    initial_sidebar_state="expanded",
-    page_icon="./assets/favicon.ico" 
-)
 
 language_options = ["English", "Chinese"]
-default_language = "English"
-st.session_state['language'] = st.selectbox("Select Language", language_options, index=language_options.index(default_language))
+default_language = "Chinese"
+
+#st.session_state['language'] = st.selectbox("Select Language", language_options, index=language_options.index(default_language))
+
+with st.sidebar:
+    st.session_state['language'] = st.selectbox("Select Language", language_options, index=language_options.index(default_language))
+
+logo_url= "https://ai-avatar-public.s3.amazonaws.com/icons/logo.png"
 
 english_text = {
-    "title": "😊 ChatX - Retrieve information and Knowledge by AI 😊",
-    "add_knowledge": "Add Knowledge",
-    "chat": "Chat with your Ai-Avatar",
+    "title": f'<img src="{logo_url}" style ="height: 3em;width:3em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="font-size:2em;font-weight:bold"> ChatX - Retrieve information and Knowledge by AI</span>',
+    "add_docs": "Add Docs",
+    "chat": "Retrieve information and Knowledge by Chat",
     "forget": "Forget",
     "explore": "Explore",
     
     # Add more keys as needed
 }
 
+
 chinese_text = {
-    "title": "😊 ChatX - 改变获取信息和知识的方式 😊",
-    "add_knowledge": "添加知识",
-    "chat": "聊天",
-    "forget": "删除",
-    "explore": "探索",
+    "title": f'<img src="{logo_url}" style ="height: 3em;width:3em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size:2em;font-weight:bold">ChatX - 改变获取信息和知识的方式</span>',
+    "add_docs": "添加文档",
+    "chat": "用聊天的方式萃取知识和信息",
+    "forget": "遗忘",
+    "explore": "浏览",
     # Add more keys as needed
 }
+
 
 if st.session_state['language'] == "English":
     text = english_text
 else:
     text = chinese_text
 
-st.title(text["title"])
+#st.title(text["title"], unsafe_allow_html=True)
+st.markdown(text["title"], unsafe_allow_html=True)
+
 
 if self_hosted == "false":
     st.markdown('**📢 Note: In the public demo, access to functionality is restricted. You can only use the GPT-3.5-turbo model and upload files up to 1Mb. To use more models and upload larger files, consider self-hosting ChatX.**')
@@ -101,11 +107,11 @@ if 'max_tokens' not in st.session_state:
 
 # Create a radio button for user to choose between adding knowledge or asking a question
 user_choice = st.radio(
-    "Choose an action", (text['add_knowledge'], text['chat'], text['forget'], text["explore"]))
+    "Choose an action", (text['add_docs'], text['chat'], text['forget'], text["explore"]))
 
 st.markdown("---\n\n")
 
-if user_choice == text['add_knowledge']:
+if user_choice == text['add_docs']:
     # Display chunk size and overlap selection only when adding knowledge
     st.sidebar.title("Configuration")
     st.sidebar.markdown(
@@ -154,31 +160,15 @@ elif user_choice == text['explore']:
 st.markdown("---\n\n")
 
 
-
-
-# 定义中英文footer文本
 footer_text = {
-    'en': "Copyright © 2023 Ai-Avatar Labs. All rights reserved.",
-    'cn': "版权所有 © 2023 艾凡达实验室。保留所有权利。"
+    "English": "Copyright (c) 2023 Ai-Avatar Labs. All rights reserved.",
+    "Chinese": "版权所有 (c) 2023 艾凡达实验室。保留所有权利。"
 }
 
-# 定义footer的HTML模板
-footer_template = """<style>
-.footer {{
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  background-color: white;
-  color: grey;
-  text-align: center;
-}}
-</style>
-<div class="footer">
-<p>{}</p>
-</div>
-"""
+if st.session_state['language'] in footer_text:
+    footer = footer_text[st.session_state['language']]
+else:
+    footer = "Default footer"
 
-# 根据用户选择的语言来设置footer
-footer = footer_template.format(footer_text[st.session_state['language']])
-st.markdown(footer, unsafe_allow_html=True)
+st.markdown("---")
+st.markdown("<div style='text-align: center;'>{}</div>".format(footer), unsafe_allow_html=True)
